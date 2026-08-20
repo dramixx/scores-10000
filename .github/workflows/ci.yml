@@ -50,7 +50,20 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-      - run: npm run build
+      - name: Build
+        run: |
+          # This project's toolchain (Vite 8 / Rolldown) has occasionally produced
+          # an incomplete build in CI (adapter-node's output missing) without
+          # failing the build command itself. Verify the expected server entry
+          # exists and retry once if not, rather than let Playwright fail later
+          # with a confusing "connection refused" / "module not found" error.
+          npm run build
+          if [ ! -f build/index.js ]; then
+            echo "::warning::build/index.js missing after build, retrying once"
+            rm -rf build .svelte-kit
+            npm run build
+          fi
+          test -f build/index.js
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
