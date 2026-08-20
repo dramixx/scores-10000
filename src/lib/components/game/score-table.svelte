@@ -29,12 +29,14 @@
 	<p class="py-8 text-center text-sm text-muted-foreground">Aucun tour joué pour le moment.</p>
 {:else}
 	<div class="overflow-x-auto">
-		<table class="w-full min-w-full border-separate border-spacing-y-2">
+		<table class="border-separate border-spacing-y-2" style="min-width: 100%;">
 			<thead>
 				<tr>
-					<th class="w-8 text-left text-xs font-bold text-muted-foreground"></th>
+					<th
+						class="sticky left-0 z-10 w-8 bg-background text-left text-xs font-bold text-muted-foreground"
+					></th>
 					{#each state.players as player (player.id)}
-						<th class="px-1 text-center text-xs font-bold text-muted-foreground">
+						<th class="w-16 min-w-16 px-1 text-center text-xs font-bold text-muted-foreground">
 							<span class="block truncate">{player.name}</span>
 						</th>
 					{/each}
@@ -43,10 +45,13 @@
 			<tbody>
 				{#each rounds as round (round)}
 					<tr>
-						<td class="px-1 text-xs font-bold text-muted-foreground">{round}</td>
+						<td
+							class="sticky left-0 z-10 bg-background px-1 text-xs font-bold text-muted-foreground"
+							>{round}</td
+						>
 						{#each state.players as player (player.id)}
 							{@const turn = turnFor(player.id, round)}
-							<td class="px-1 text-center">
+							<td class="w-16 min-w-16 px-1 text-center">
 								{#if turn}
 									{@const isAnchor = !turn.cancelled && anchorIds.get(player.id) === turn.id}
 									<button

@@ -28,6 +28,7 @@
 	let restartConfirmOpen = $state(false);
 	let cancelTarget = $state<{ playerId: string; playerName: string; turnId: string } | null>(null);
 	let submitError = $state<string | null>(null);
+	let headerScrollEl = $state<HTMLDivElement | null>(null);
 
 	onMount(() => {
 		const game = gameId ? loadGame(gameId) : null;
@@ -43,6 +44,13 @@
 	const roundNumber = $derived(
 		active && gameState ? computePlayerDerived(gameState, active.id).turnsPlayed + 1 : 1
 	);
+
+	// Keep the active player's card in view when there are too many players to fit on screen.
+	$effect(() => {
+		if (!active || !headerScrollEl) return;
+		const card = headerScrollEl.querySelector<HTMLElement>(`[data-player-id="${active.id}"]`);
+		card?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+	});
 
 	function handleSubmit(score: number) {
 		if (!store || !active) return;
@@ -149,7 +157,10 @@
 				{/if}
 			{/if}
 		{:else}
-			<div class="flex gap-2 px-5">
+			<div
+				bind:this={headerScrollEl}
+				class="flex snap-x snap-proximity gap-2 overflow-x-auto px-5 pb-0.5"
+			>
 				{#each gameState.players as player (player.id)}
 					<PlayerHeaderCard
 						{player}

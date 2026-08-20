@@ -1,8 +1,14 @@
 import type { Game } from './types';
-import { currentState } from './engine';
+import { computePlayerDerived, currentState } from './engine';
 
 const STORAGE_PREFIX = 'tenk:game:';
 const INDEX_KEY = 'tenk:games-index';
+
+/** Typical per-origin localStorage quota in most browsers. Used only to estimate usage,
+ *  since there is no standard API to read the real quota. */
+const ASSUMED_QUOTA_BYTES = 5 * 1024 * 1024;
+/** Usage ratio (0..1) above which the UI should warn the user to free up space. */
+export const STORAGE_WARNING_RATIO = 0.8;
 
 function isBrowser(): boolean {
 	return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
@@ -61,6 +67,8 @@ export interface GameSummary {
 	playerNames: string[];
 	updatedAt: number;
 	status: 'in_progress' | 'finished';
+	winnerName?: string;
+	winnerScore?: number;
 }
 
 export function loadGame(id: string): Game | null {
@@ -75,7 +83,7 @@ export function loadGame(id: string): Game | null {
 	}
 }
 
-/** Lists resumable (in-progress) games, most recently updated first. Corrupt entries are included as invalid. */
+/** Lists all games (in-progress and finished), most recently updated first. Corrupt entries are included as invalid. */
 export function listGames(): GameSummary[] {
 	if (!isBrowser()) return [];
 	const ids = readIndex();
@@ -90,24 +98,50 @@ export function listGames(): GameSummary[] {
 				continue;
 			}
 			const state = currentState(parsed);
+			let winnerName: string | undefined;
+			let winnerScore: number | undefined;
+			if (state.status === 'finished' && state.winnerId) {
+				const winner = state.players.find((p) => p.id === state.winnerId);
+				winnerName = winner?.name;
+				winnerScore = computePlayerDerived(state, state.winnerId).cumulative;
+			}
 			summaries.push({
 				id,
 				valid: true,
 				playerNames: state.players.map((p) => p.name),
 				updatedAt: parsed.updatedAt,
-				status: state.status
+				status: state.status,
+				winnerName,
+				winnerScore
 			});
 		} catch {
 			summaries.push({ id, valid: false, playerNames: [], updatedAt: 0, status: 'in_progress' });
 		}
 	}
-	return summaries
-		.filter((s) => !s.valid || s.status === 'in_progress')
-		.sort((a, b) => b.updatedAt - a.updatedAt);
+	return summaries.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export function deleteGame(id: string): void {
 	if (!isBrowser()) return;
 	window.localStorage.removeItem(`${STORAGE_PREFIX}${id}`);
 	writeIndex(readIndex().filter((existing) => existing !== id));
+}
+
+export interface StorageUsage {
+	bytes: number;
+	quotaBytes: number;
+	/** 0..1 estimate of how full the origin's localStorage is. */
+	ratio: number;
+}
+
+/** Estimates localStorage usage against a typical browser quota (no standard API exposes the real one). */
+export function getStorageUsage(): StorageUsage {
+	if (!isBrowser()) return { bytes: 0, quotaBytes: ASSUMED_QUOTA_BYTES, ratio: 0 };
+	let bytes = 0;
+	for (let i = 0; i < window.localStorage.length; i++) {
+		const key = window.localStorage.key(i);
+		if (!key) continue;
+		bytes += (key.length + (window.localStorage.getItem(key)?.length ?? 0)) * 2;
+	}
+	return { bytes, quotaBytes: ASSUMED_QUOTA_BYTES, ratio: bytes / ASSUMED_QUOTA_BYTES };
 }

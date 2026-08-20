@@ -6,25 +6,44 @@
 	import { Card } from '$lib/components/ui/card';
 	import ConfirmDialog from '$lib/components/game/confirm-dialog.svelte';
 	import RulesDialog from '$lib/components/game/rules-dialog.svelte';
-	import { deleteGame, listGames, type GameSummary } from '$lib/game/storage';
-	import { relativeTime } from '$lib/format-time';
+	import {
+		deleteGame,
+		getStorageUsage,
+		listGames,
+		STORAGE_WARNING_RATIO,
+		type GameSummary,
+		type StorageUsage
+	} from '$lib/game/storage';
+	import { relativeTime, formatScore } from '$lib/format-time';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import XIcon from '@lucide/svelte/icons/x';
 	import Dice5Icon from '@lucide/svelte/icons/dice-5';
+	import TrophyIcon from '@lucide/svelte/icons/trophy';
+	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 
 	let games = $state<GameSummary[]>([]);
 	let rulesOpen = $state(false);
 	let deleteTarget = $state<GameSummary | null>(null);
 	let now = $state(Date.now());
+	let storageUsage = $state<StorageUsage | null>(null);
+
+	const inProgressGames = $derived(games.filter((g) => !g.valid || g.status === 'in_progress'));
+	const finishedGames = $derived(games.filter((g) => g.valid && g.status === 'finished'));
+	const storageWarning = $derived(
+		storageUsage && storageUsage.ratio >= STORAGE_WARNING_RATIO
+			? Math.min(100, Math.round(storageUsage.ratio * 100))
+			: null
+	);
 
 	onMount(() => {
-		games = listGames();
+		refresh();
 		const interval = setInterval(() => (now = Date.now()), 30_000);
 		return () => clearInterval(interval);
 	});
 
 	function refresh() {
 		games = listGames();
+		storageUsage = getStorageUsage();
 	}
 
 	function resume(game: GameSummary) {
@@ -66,15 +85,25 @@
 		Nouvelle partie
 	</Button>
 
-	{#if games.length > 0}
+	{#if storageWarning !== null}
+		<div class="mb-6 flex items-start gap-3 rounded-2xl bg-destructive/10 p-4 text-destructive">
+			<TriangleAlertIcon class="h-5 w-5 shrink-0" />
+			<p class="text-sm font-semibold">
+				Le stockage local est presque plein ({storageWarning} %). Supprimez d'anciennes parties ci-dessous
+				pour libérer de la place.
+			</p>
+		</div>
+	{/if}
+
+	{#if inProgressGames.length > 0}
 		<div class="mb-3 flex items-center justify-between">
 			<h2 class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
 				Parties en cours
 			</h2>
-			<span class="text-xs text-muted-foreground">{games.length}</span>
+			<span class="text-xs text-muted-foreground">{inProgressGames.length}</span>
 		</div>
-		<ul class="space-y-3">
-			{#each games as game (game.id)}
+		<ul class="mb-8 space-y-3">
+			{#each inProgressGames as game (game.id)}
 				<li>
 					<Card class="flex items-center justify-between gap-3 p-4">
 						<div class="min-w-0">
@@ -105,6 +134,48 @@
 							>
 								Reprendre
 							</Button>
+						</div>
+					</Card>
+				</li>
+			{/each}
+		</ul>
+	{/if}
+
+	{#if finishedGames.length > 0}
+		<div class="mb-3 flex items-center justify-between">
+			<h2 class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
+				Parties terminées
+			</h2>
+			<span class="text-xs text-muted-foreground">{finishedGames.length}</span>
+		</div>
+		<ul class="space-y-3">
+			{#each finishedGames as game (game.id)}
+				<li>
+					<Card class="flex items-center justify-between gap-3 p-4">
+						<div class="min-w-0">
+							<p class="truncate font-bold">{game.playerNames.join(' · ')}</p>
+							<div class="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+								{#if game.winnerName}
+									<TrophyIcon class="h-3 w-3 shrink-0 text-accent-blue" />
+									<span class="truncate"
+										>{game.winnerName} · {formatScore(game.winnerScore ?? 0)}</span
+									>
+								{/if}
+							</div>
+							<p class="mt-0.5 text-xs text-muted-foreground">
+								{relativeTime(game.updatedAt, now)}
+							</p>
+						</div>
+						<div class="flex shrink-0 items-center gap-2">
+							<button
+								type="button"
+								class="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-secondary-foreground"
+								aria-label="Supprimer la partie"
+								onclick={() => (deleteTarget = game)}
+							>
+								<XIcon class="h-4 w-4" />
+							</button>
+							<Button size="sm" variant="secondary" onclick={() => resume(game)}>Voir</Button>
 						</div>
 					</Card>
 				</li>
