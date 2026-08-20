@@ -42,6 +42,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Debug adapter resolution
+        run: |
+          node -e "import('@sveltejs/adapter-node').then(m => console.log('adapter-node module path resolves; adapter().name =', m.default().name)).catch(e => console.log('IMPORT FAILED', e))"
+          npm ls @sveltejs/adapter-node @sveltejs/adapter-static @sveltejs/kit 2>&1 || true
+          find / -xdev -iname "*adapter-static*" -not -path "/proc/*" 2>/dev/null || true
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         id: playwright-cache
