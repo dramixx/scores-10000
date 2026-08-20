@@ -2,10 +2,14 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
 	webServer: {
-		command: 'npm run build && npm run preview',
+		command: 'npm run build && npm run start',
 		port: 4173,
 		reuseExistingServer: !process.env.CI,
-		timeout: 120_000
+		timeout: 120_000,
+		env: {
+			PORT: '4173',
+			HOST: '127.0.0.1'
+		}
 	},
 	testDir: 'e2e',
 	testMatch: '**/*.e2e.{ts,js}',
