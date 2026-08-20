@@ -113,3 +113,31 @@ test('a resumable game appears in the home list and can be deleted', async ({ pa
 	await page.getByRole('button', { name: 'Supprimer', exact: true }).click();
 	await expect(page.getByText('Léa · Marc')).toHaveCount(0);
 });
+
+test('a finished game appears in history and revisiting shows the victory stats', async ({
+	page
+}) => {
+	await createGame(page, ['Léa', 'Marc']);
+	await enterScore(page, 10000);
+	await expect(page.getByText('Vainqueur')).toBeVisible();
+
+	await page.goto('/');
+	await expect(page.getByText('Parties terminées')).toBeVisible();
+	await expect(page.getByText('Léa · Marc')).toBeVisible();
+
+	await page.getByRole('button', { name: 'Voir' }).click();
+	await expect(page).toHaveURL(/\/game\//);
+	await expect(page.getByText('Vainqueur')).toBeVisible();
+	await expect(page.getByText('Léa', { exact: true }).first()).toBeVisible();
+});
+
+test('two consecutive crosses show a "N croix" badge on the player card', async ({ page }) => {
+	await createGame(page, ['Léa', 'Marc']);
+	await enterScore(page, 500); // Léa
+	await enterScore(page, 300); // Marc
+	await page.getByRole('button', { name: 'Croix' }).click(); // Léa cross 1
+	await enterScore(page, 300); // Marc
+	await page.getByRole('button', { name: 'Croix' }).click(); // Léa cross 2
+
+	await expect(page.getByText('2 croix')).toBeVisible();
+});
