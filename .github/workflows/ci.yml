@@ -41,12 +41,24 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - name: Debug adapter resolution
+      - name: Install dependencies
         run: |
-          node -e "import('@sveltejs/adapter-node').then(m => console.log('adapter-node module path resolves; adapter().name =', m.default().name)).catch(e => console.log('IMPORT FAILED', e))"
-          npm ls @sveltejs/adapter-node @sveltejs/adapter-static @sveltejs/kit 2>&1 || true
-          find / -xdev -iname "*adapter-static*" -not -path "/proc/*" 2>/dev/null || true
+          npm ci
+          # `npm ci` has, in this job specifically, installed
+          # @sveltejs/adapter-static (not a dependency of this project at all,
+          # and absent from package-lock.json) while leaving the actually
+          # required @sveltejs/adapter-node uninstalled — confirmed via
+          # `npm ls` and a direct `import()` check. This corrupts the
+          # SvelteKit build, which silently falls back to a static export
+          # with no build/index.js, breaking Playwright's webServer. Detect
+          # that bad state and force a clean reinstall.
+          if [ -d node_modules/@sveltejs/adapter-static ] || [ ! -d node_modules/@sveltejs/adapter-node ]; then
+            echo "::warning::unexpected adapter package(s) after npm ci, forcing a clean reinstall"
+            rm -rf node_modules
+            npm ci
+          fi
+          test -d node_modules/@sveltejs/adapter-node
+          test ! -d node_modules/@sveltejs/adapter-static
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         id: playwright-cache
