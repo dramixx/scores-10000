@@ -41,7 +41,24 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - name: Install dependencies
+        run: |
+          npm ci
+          # `npm ci` has, in this job specifically, installed
+          # @sveltejs/adapter-static (not a dependency of this project at all,
+          # and absent from package-lock.json) while leaving the actually
+          # required @sveltejs/adapter-node uninstalled — confirmed via
+          # `npm ls` and a direct `import()` check. This corrupts the
+          # SvelteKit build, which silently falls back to a static export
+          # with no build/index.js, breaking Playwright's webServer. Detect
+          # that bad state and force a clean reinstall.
+          if [ -d node_modules/@sveltejs/adapter-static ] || [ ! -d node_modules/@sveltejs/adapter-node ]; then
+            echo "::warning::unexpected adapter package(s) after npm ci, forcing a clean reinstall"
+            rm -rf node_modules
+            npm ci
+          fi
+          test -d node_modules/@sveltejs/adapter-node
+          test ! -d node_modules/@sveltejs/adapter-static
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         id: playwright-cache
@@ -50,6 +67,20 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+      - name: Build
+        run: |
+          # This project's toolchain (Vite 8 / Rolldown) has occasionally produced
+          # an incomplete build in CI (adapter-node's output missing) without
+          # failing the build command itself. Verify the expected server entry
+          # exists and retry once if not, rather than let Playwright fail later
+          # with a confusing "connection refused" / "module not found" error.
+          npm run build
+          if [ ! -f build/index.js ]; then
+            echo "::warning::build/index.js missing after build, retrying once"
+            rm -rf build .svelte-kit
+            npm run build
+          fi
+          test -f build/index.js
       - run: npx playwright test
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
