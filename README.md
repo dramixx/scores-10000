@@ -15,7 +15,7 @@ détail des comportements attendus.
 - PWA via [`@vite-pwa/sveltekit`](https://vite-pwa-org.netlify.app/frameworks/sveltekit)
 - Tests unitaires : [Vitest](https://vitest.dev)
 - Tests e2e : [Playwright](https://playwright.dev)
-- Déploiement : [`adapter-node`](https://svelte.dev/docs/kit/adapter-node) + `Dockerfile`
+- Déploiement : [`adapter-static`](https://svelte.dev/docs/kit/adapter-static) + `Dockerfile` (nginx)
 
 ## Développement
 
@@ -45,10 +45,11 @@ Ou via Docker :
 
 ```sh
 docker build -t scores-10000 .
-docker run -p 3000:3000 scores-10000
+docker run -p 8080:80 scores-10000
 ```
 
-Le `Dockerfile` ne fait que construire et exposer l'application (port 3000) ;
+L'application est un SPA statique (pas de SSR, pas de backend) : le
+`Dockerfile` compile le build statique puis le sert avec nginx (port 80) ;
 le déploiement (CD) est géré séparément (Dokploy).
 
 ## Architecture
