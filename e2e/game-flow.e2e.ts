@@ -131,7 +131,7 @@ test('a finished game appears in history and revisiting shows the victory stats'
 	await expect(page.getByText('Léa', { exact: true }).first()).toBeVisible();
 });
 
-test('two consecutive crosses show a "N croix" badge on the player card', async ({ page }) => {
+test('two consecutive crosses show a XX badge on the cross cell', async ({ page }) => {
 	await createGame(page, ['Léa', 'Marc']);
 	await enterScore(page, 500); // Léa
 	await enterScore(page, 300); // Marc
@@ -139,5 +139,34 @@ test('two consecutive crosses show a "N croix" badge on the player card', async 
 	await enterScore(page, 300); // Marc
 	await page.getByRole('button', { name: 'Croix' }).click(); // Léa cross 2
 
-	await expect(page.getByText('2 croix')).toBeVisible();
+	await expect(page.getByText('XX', { exact: true })).toBeVisible();
+});
+
+test('the leader header is gold with a trophy', async ({ page }) => {
+	await createGame(page, ['Léa', 'Marc']);
+	await enterScore(page, 500); // Léa
+	await enterScore(page, 300); // Marc
+
+	await expect(page.locator('[data-leader]')).toHaveCount(1);
+	await expect(page.locator('th [data-leader]')).toContainText('Léa');
+	await expect(page.locator('th [data-leader]')).toContainText('🏆');
+});
+
+test('the table auto-scrolls to the latest round', async ({ page }) => {
+	await createGame(page, ['Léa', 'Marc']);
+	for (let i = 0; i < 20; i++) await enterScore(page, 50);
+	await expect
+		.poll(() =>
+			page.evaluate(() => {
+				const el = document.querySelector('table')!.parentElement!;
+				return el.scrollHeight - el.clientHeight - el.scrollTop;
+			})
+		)
+		.toBeLessThan(2);
+	expect(
+		await page.evaluate(() => {
+			const el = document.querySelector('table')!.parentElement!;
+			return el.scrollTop;
+		})
+	).toBeGreaterThan(0);
 });

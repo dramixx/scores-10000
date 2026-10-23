@@ -6,7 +6,6 @@
 	import { Button } from '$lib/components/ui/button';
 	import ConfirmDialog from '$lib/components/game/confirm-dialog.svelte';
 	import RulesDialog from '$lib/components/game/rules-dialog.svelte';
-	import PlayerHeaderCard from '$lib/components/game/player-header-card.svelte';
 	import ScoreTable from '$lib/components/game/score-table.svelte';
 	import ScoreEntryPanel from '$lib/components/game/score-entry-panel.svelte';
 	import VictoryScreen from '$lib/components/game/victory-screen.svelte';
@@ -28,7 +27,6 @@
 	let restartConfirmOpen = $state(false);
 	let cancelTarget = $state<{ playerId: string; playerName: string; turnId: string } | null>(null);
 	let submitError = $state<string | null>(null);
-	let headerScrollEl = $state<HTMLDivElement | null>(null);
 
 	onMount(() => {
 		const game = gameId ? loadGame(gameId) : null;
@@ -44,13 +42,6 @@
 	const roundNumber = $derived(
 		active && gameState ? computePlayerDerived(gameState, active.id).turnsPlayed + 1 : 1
 	);
-
-	// Keep the active player's card in view when there are too many players to fit on screen.
-	$effect(() => {
-		if (!active || !headerScrollEl) return;
-		const card = headerScrollEl.querySelector<HTMLElement>(`[data-player-id="${active.id}"]`);
-		card?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-	});
 
 	function handleSubmit(score: number) {
 		if (!store || !active) return;
@@ -100,7 +91,7 @@
 		<Button onclick={() => goto(resolve('/'))}>Retour à l'accueil</Button>
 	</div>
 {:else if gameState && active}
-	<div class="flex min-h-svh flex-col">
+	<div class={gameState.status === 'finished' ? 'flex min-h-svh flex-col' : 'flex h-svh flex-col'}>
 		<header class="flex items-center gap-2 px-5 pt-[max(1.25rem,env(safe-area-inset-top))] pb-3">
 			<button
 				type="button"
@@ -152,26 +143,18 @@
 				/>
 				{#if showTableOnVictory}
 					<div class="px-5 pb-8">
-						<ScoreTable state={gameState} onCancelTurn={() => {}} />
+						<ScoreTable state={gameState} onCancelTurn={() => {}} class="max-h-96" />
 					</div>
 				{/if}
 			{/if}
 		{:else}
-			<div
-				bind:this={headerScrollEl}
-				class="flex snap-x snap-proximity gap-2 overflow-x-auto px-5 pb-0.5"
-			>
-				{#each gameState.players as player (player.id)}
-					<PlayerHeaderCard
-						{player}
-						derived={computePlayerDerived(gameState, player.id)}
-						active={player.id === active.id}
-					/>
-				{/each}
-			</div>
-
-			<div class="flex-1 overflow-y-auto px-5 pt-4 pb-4">
-				<ScoreTable state={gameState} onCancelTurn={requestCancel} />
+			<div class="min-h-0 flex-1 px-5 pt-2 pb-4">
+				<ScoreTable
+					state={gameState}
+					activePlayerId={active.id}
+					onCancelTurn={requestCancel}
+					class="h-full"
+				/>
 			</div>
 
 			<div class="sticky bottom-0">
