@@ -131,7 +131,7 @@ test('a finished game appears in history and revisiting shows the victory stats'
 	await expect(page.getByText('Léa', { exact: true }).first()).toBeVisible();
 });
 
-test('two consecutive crosses show a XX/XXX badge in the table header', async ({ page }) => {
+test('two consecutive crosses show a XX badge on the cross cell', async ({ page }) => {
 	await createGame(page, ['Léa', 'Marc']);
 	await enterScore(page, 500); // Léa
 	await enterScore(page, 300); // Marc
@@ -149,4 +149,23 @@ test('the leader column is highlighted in gold', async ({ page }) => {
 
 	await expect(page.locator('[data-leader]')).toHaveCount(1);
 	await expect(page.locator('[data-leader]').first()).toContainText('500');
+});
+
+test('the table auto-scrolls to the latest round', async ({ page }) => {
+	await createGame(page, ['Léa', 'Marc']);
+	for (let i = 0; i < 20; i++) await enterScore(page, 50);
+	await expect
+		.poll(() =>
+			page.evaluate(() => {
+				const el = document.querySelector('table')!.parentElement!;
+				return el.scrollHeight - el.clientHeight - el.scrollTop;
+			})
+		)
+		.toBeLessThan(2);
+	expect(
+		await page.evaluate(() => {
+			const el = document.querySelector('table')!.parentElement!;
+			return el.scrollTop;
+		})
+	).toBeGreaterThan(0);
 });

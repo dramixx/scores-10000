@@ -27,6 +27,18 @@
 		return gameState.turns.find((t) => t.playerId === playerId && t.roundNumber === round);
 	}
 
+	// Position of each cross within its run of consecutive crosses (1 = ❌, 2 = XX, 3 = XXX).
+	const crossRun = $derived.by(() => {
+		const run: Record<string, number> = {};
+		const streaks: Record<string, number> = {};
+		for (const t of gameState.turns) {
+			const n = t.isCross ? (streaks[t.playerId] ?? 0) + 1 : 0;
+			streaks[t.playerId] = n;
+			if (t.isCross) run[t.id] = n;
+		}
+		return run;
+	});
+
 	const derivedByPlayer = $derived(
 		new Map(gameState.players.map((p) => [p.id, computePlayerDerived(gameState, p.id)]))
 	);
@@ -50,14 +62,12 @@
 		if (!scrollEl) return;
 		const el = scrollEl;
 		tick().then(() => {
-			el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
-			if (activeId) {
-				el.querySelector<HTMLElement>(`[data-player-id="${activeId}"]`)?.scrollIntoView({
-					behavior: 'smooth',
-					inline: 'center',
-					block: 'nearest'
-				});
-			}
+			// A single scrollTo: concurrent smooth scrolls would cancel each other.
+			const th = activeId
+				? el.querySelector<HTMLElement>(`thead [data-player-id="${activeId}"]`)
+				: null;
+			const left = th ? th.offsetLeft - (el.clientWidth - th.offsetWidth) / 2 : el.scrollLeft;
+			el.scrollTo({ top: el.scrollHeight, left: Math.max(0, left), behavior: 'smooth' });
 		});
 	});
 </script>
@@ -70,7 +80,6 @@
 			<thead>
 				<tr>
 					{#each gameState.players as player (player.id)}
-						{@const crossStreak = derivedByPlayer.get(player.id)?.crossStreak ?? 0}
 						<th
 							data-player-id={player.id}
 							class="sticky top-0 z-10 w-20 min-w-20 bg-background px-1 pb-1 text-center text-xs font-bold"
@@ -85,11 +94,6 @@
 							>
 								{player.name}
 							</span>
-							{#if crossStreak > 0}
-								<span class="mt-0.5 block text-xs whitespace-nowrap text-destructive">
-									{crossStreak >= 2 ? 'X'.repeat(crossStreak) : '❌'}
-								</span>
-							{/if}
 						</th>
 					{/each}
 				</tr>
@@ -127,7 +131,9 @@
 											{formatScore(turn.cumulativeAfter)}
 										</span>
 										{#if turn.isCross}
-											<span class="block text-xs text-destructive">❌</span>
+											<span class="block text-xs font-black text-destructive">
+												{(crossRun[turn.id] ?? 1) >= 2 ? 'X'.repeat(crossRun[turn.id] ?? 1) : '❌'}
+											</span>
 										{:else if turn.scoreEntered > 0}
 											<span
 												class={cn(
