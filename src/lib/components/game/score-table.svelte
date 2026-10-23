@@ -87,7 +87,7 @@
 							</span>
 							{#if crossStreak > 0}
 								<span class="mt-0.5 block text-xs whitespace-nowrap text-destructive">
-									{crossStreak >= 2 ? `${crossStreak} croix` : '❌'}
+									{crossStreak >= 2 ? 'X'.repeat(crossStreak) : '❌'}
 								</span>
 							{/if}
 						</th>
