@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Celebration from './celebration.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { formatDuration, formatScore } from '$lib/format-time';
 	import type { Game } from '$lib/game/types';
@@ -20,6 +21,8 @@
 	const winner = $derived(stats.ranking[0]);
 	const confettiPieces = Array.from({ length: 18 }, (_v, i) => i);
 </script>
+
+<Celebration />
 
 <div class="flex flex-col gap-6 px-5 pt-[max(1.5rem,env(safe-area-inset-top))] pb-8">
 	<div

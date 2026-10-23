@@ -131,7 +131,7 @@ test('a finished game appears in history and revisiting shows the victory stats'
 	await expect(page.getByText('Léa', { exact: true }).first()).toBeVisible();
 });
 
-test('two consecutive crosses show a "N croix" badge on the player card', async ({ page }) => {
+test('two consecutive crosses show a "N croix" badge in the table header', async ({ page }) => {
 	await createGame(page, ['Léa', 'Marc']);
 	await enterScore(page, 500); // Léa
 	await enterScore(page, 300); // Marc
@@ -140,4 +140,13 @@ test('two consecutive crosses show a "N croix" badge on the player card', async 
 	await page.getByRole('button', { name: 'Croix' }).click(); // Léa cross 2
 
 	await expect(page.getByText('2 croix')).toBeVisible();
+});
+
+test('the leader column is highlighted in gold', async ({ page }) => {
+	await createGame(page, ['Léa', 'Marc']);
+	await enterScore(page, 500); // Léa
+	await enterScore(page, 300); // Marc
+
+	await expect(page.locator('[data-leader]')).toHaveCount(1);
+	await expect(page.locator('[data-leader]').first()).toContainText('500');
 });

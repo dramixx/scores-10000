@@ -30,6 +30,8 @@
 	--input: #e7dfca;
 	--ring: #df5540;
 	--radius: 1.25rem;
+	--gold: #f5c542;
+	--gold-foreground: #3d2c00;
 	--victory-from: #6a5cd6;
 	--victory-to: #3f7de0;
 }
@@ -55,6 +57,8 @@
 	--color-accent-blue-foreground: var(--accent-blue-foreground);
 	--color-success: var(--success);
 	--color-success-foreground: var(--success-foreground);
+	--color-gold: var(--gold);
+	--color-gold-foreground: var(--gold-foreground);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
 	--color-border: var(--border);
