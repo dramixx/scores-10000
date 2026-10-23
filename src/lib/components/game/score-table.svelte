@@ -132,7 +132,7 @@
 										</span>
 										{#if turn.isCross}
 											<span class="block text-xs font-black text-destructive">
-												{(crossRun[turn.id] ?? 1) >= 2 ? 'X'.repeat(crossRun[turn.id] ?? 1) : '❌'}
+												{'X'.repeat(crossRun[turn.id] ?? 1)}
 											</span>
 										{:else if turn.scoreEntered > 0}
 											<span
