@@ -87,11 +87,18 @@
 							<span
 								class={cn(
 									'block truncate rounded-xl px-2 py-1.5',
-									player.id === activePlayerId
-										? 'bg-card-active text-card-active-foreground'
-										: 'bg-card text-muted-foreground'
+									leaderIds.has(player.id)
+										? 'bg-gold text-gold-foreground'
+										: player.id === activePlayerId
+											? 'bg-card-active text-card-active-foreground'
+											: 'bg-card text-muted-foreground',
+									leaderIds.has(player.id) &&
+										player.id === activePlayerId &&
+										'ring-2 ring-card-active'
 								)}
+								data-leader={leaderIds.has(player.id) ? '' : undefined}
 							>
+								{#if leaderIds.has(player.id)}<span aria-label="Leader">🏆</span>{/if}
 								{player.name}
 							</span>
 						</th>
@@ -110,14 +117,9 @@
 										type="button"
 										class={cn(
 											'w-full rounded-xl px-2 py-1.5',
-											turn.cancelled
-												? 'bg-muted/60'
-												: leaderIds.has(player.id)
-													? 'bg-gold text-gold-foreground'
-													: 'bg-card',
+											turn.cancelled ? 'bg-muted/60' : 'bg-card',
 											isAnchor ? 'cursor-pointer' : 'cursor-default'
 										)}
-										data-leader={leaderIds.has(player.id) ? '' : undefined}
 										disabled={!isAnchor}
 										onclick={() => isAnchor && onCancelTurn(player.id, turn.id)}
 										aria-label={isAnchor ? `Annuler ce tour de ${player.name}` : undefined}
@@ -138,11 +140,7 @@
 											<span
 												class={cn(
 													'block text-xs font-semibold',
-													turn.cancelled
-														? 'text-muted-foreground'
-														: leaderIds.has(player.id)
-															? 'text-gold-foreground'
-															: 'text-success'
+													turn.cancelled ? 'text-muted-foreground' : 'text-success'
 												)}
 											>
 												+{formatScore(turn.scoreEntered)}

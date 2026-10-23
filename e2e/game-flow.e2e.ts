@@ -142,13 +142,14 @@ test('two consecutive crosses show a XX badge on the cross cell', async ({ page 
 	await expect(page.getByText('XX', { exact: true })).toBeVisible();
 });
 
-test('the leader column is highlighted in gold', async ({ page }) => {
+test('the leader header is gold with a trophy', async ({ page }) => {
 	await createGame(page, ['Léa', 'Marc']);
 	await enterScore(page, 500); // Léa
 	await enterScore(page, 300); // Marc
 
 	await expect(page.locator('[data-leader]')).toHaveCount(1);
-	await expect(page.locator('[data-leader]').first()).toContainText('500');
+	await expect(page.locator('th [data-leader]')).toContainText('Léa');
+	await expect(page.locator('th [data-leader]')).toContainText('🏆');
 });
 
 test('the table auto-scrolls to the latest round', async ({ page }) => {

@@ -72,7 +72,7 @@
 			<span class="h-2 w-2 rounded-full bg-destructive"></span>
 			<span class="font-bold">{playerName}</span>
 		</div>
-		<span class="text-xs text-muted-foreground">reste {formatScore(remaining)} pts</span>
+		<span class="text-xl font-black tabular-nums">reste {formatScore(remaining)} pts</span>
 	</div>
 
 	<div class="mb-4 flex h-14 items-center justify-between rounded-2xl bg-secondary px-4">
